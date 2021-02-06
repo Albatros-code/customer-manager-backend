@@ -1,0 +1,7 @@
+.trash
+.vscode
+.idea
+.env
+data.py
+flask_app/react-app
+venvgi
