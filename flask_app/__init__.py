@@ -7,6 +7,7 @@ from . import resources
 # database
 # from .mongoDB import db, User, RevokedToken
 from . import mongoDB as db
+from .scheduler import scheduler
 # JWT stuff
 from flask_jwt_extended import JWTManager
 # Cors
@@ -16,10 +17,10 @@ from flask_cors import CORS
 def create_app():
     # create and configure the app
     app = Flask(__name__,
-                static_url_path='/react-app',
-                instance_relative_config=True,
-                static_folder="react-app",
-                template_folder="react-app"
+                # static_url_path='/react-app',
+                # instance_relative_config=True,
+                # static_folder="react-app",
+                # template_folder="react-app"
                 )
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY'),
@@ -29,26 +30,24 @@ def create_app():
         JWT_BLACKLIST_TOKEN_CHECKS=['access', 'refresh'],
         CORS_SUPPORTS_CREDENTIALS=True,
         CORS_ORIGINS="http://localhost:3000",
+        # CORS_ORIGINS="localhost:3000",
+        JWT_COOKIE_CSRF_PROTECT=False,
         # JWT_ACCESS_TOKEN_EXPIRES = 15
     )
 
-    app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+    # app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 
     api = Api(app)
     jwt = JWTManager(app)
     CORS(app)
+    scheduler.start()
 
     # cors = CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
-    @jwt.token_in_blacklist_loader
-    def check_if_token_in_blacklist(decrypted_token):
-        jti = decrypted_token['jti']
-        return db.RevokedToken.is_jti_blacklisted(jti)
-
-    # a simple page that says hello
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
+    @jwt.token_in_blocklist_loader
+    def check_if_token_in_blocklist(header, payload):
+        jti = payload['jti']
+        return db.RevokedToken.is_jti_blocklisted(jti)
 
     # Serve React App
     # @app.route('/', defaults={'path': ''})
@@ -65,7 +64,9 @@ def create_app():
     api.add_resource(resources.UserLogoutAccess, '/logout/access')
     api.add_resource(resources.UserLogoutRefresh, '/logout/refresh')
     api.add_resource(resources.TokenRefresh, '/token/refresh')
-    api.add_resource(resources.UserEmailVerify, '/user/<string:user_ID>/<string:verification_string>')
+    api.add_resource(resources.UserEmailVerify, '/registration/<string:email_verification_string>')
+    api.add_resource(resources.ResetPassword, '/reset-password')
+    # api.add_resource(resources.ResetPassword, '/reset-password/<string:reset_password_string>')
 
     api.add_resource(resources.AllUsers, '/users')
     api.add_resource(resources.SecretResource, '/secret')
@@ -73,7 +74,7 @@ def create_app():
     api.add_resource(resources.AllServices, '/services')
     api.add_resource(resources.UserHistory, '/history')
     api.add_resource(resources.Appointment, '/appointment')
-    api.add_resource(resources.AvaiableDates, '/avaiable-dates')
+    api.add_resource(resources.AvailableDates, '/available-dates')
 
     api.add_resource(resources.AllAppointments, '/admin/appointments')
 

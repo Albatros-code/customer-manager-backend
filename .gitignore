@@ -5,3 +5,4 @@
 data.py
 flask_app/react-app
 venvgi
+flask_app/__pycache__
