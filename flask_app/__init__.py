@@ -1,4 +1,5 @@
 import os
+import mongoengine
 # flask base
 from flask import Flask
 # flask api stuff
@@ -36,7 +37,8 @@ def create_app():
     )
 
     # app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-
+    # db = mongoengine
+    mongoengine.connect('project1', host=os.environ.get('MONGO_URI'))
     api = Api(app)
     jwt = JWTManager(app)
     CORS(app)
@@ -66,6 +68,7 @@ def create_app():
     api.add_resource(resources.TokenRefresh, '/token/refresh')
     api.add_resource(resources.UserEmailVerify, '/registration/<string:email_verification_string>')
     api.add_resource(resources.ResetPassword, '/reset-password')
+    api.add_resource(resources.UserUpdate, '/user/update')
     # api.add_resource(resources.ResetPassword, '/reset-password/<string:reset_password_string>')
 
     api.add_resource(resources.AllUsers, '/users')

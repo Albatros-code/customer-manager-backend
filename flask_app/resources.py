@@ -1,9 +1,12 @@
 import datetime
 import math
 import secrets
+import json
 
 from flask_restful import Resource, reqparse
 from flask import Response, make_response
+from mongoengine import ValidationError, NotUniqueError
+from pymongo.errors import DuplicateKeyError
 
 from .mongoDB import User, RevokedToken
 from . import mongoDB as db
@@ -40,26 +43,34 @@ class UserRegistration(Resource):
         # Check uniqueness of username, email and phone
         errors = {}
         for key_name in ['username', 'email', 'phone']:
-            print(key_name)
             try:
                 field = User.objects(**{key_name: data[key_name]}).get()
                 if field:
                     errors[key_name] = '{} is already taken.'.format(data[key_name])
             except:
                 pass
+
         if errors != {}:
             return {'errors': errors}, 400
 
         email_verification_string = ''.join(secrets.token_hex(16))
 
-        new_user = User(
-            username=data['username'],
-            password=User.generate_hash(data['password']),
+        user_data = db.UserData(
             email=data['email'],
             phone=data['phone'],
             fname=data['fname'],
             lname=data['lname'],
+        )
+
+        user_parameters = db.UserParameters(
             email_verification_string=email_verification_string,
+        )
+
+        new_user = User(
+            username=data['username'],
+            password=User.generate_hash(data['password']),
+            data=user_data,
+            parameters=user_parameters,
         )
         try:
             new_user.save()
@@ -92,16 +103,16 @@ class UserLogin(Resource):
             # return {'errors': {'password': 'Wrong password'}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
 
-        if not current_user.email_verified:
+        if not current_user.parameters.email_verified:
             return {'errors': {'general': 'Email not verified'}}, 400
 
         identity = {
             'username': data['username'],
             'role': current_user.role,
-            'data': {
-                'name': 'John',
-                'phoneNumber': '123-456-789',
-            }
+            # 'data': {
+            #     'name': 'John',
+            #     'phoneNumber': '123-456-789',
+            # }
         }
         access_token = create_access_token(identity=identity).decode('utf-8')
         refresh_token = create_refresh_token(identity=identity).decode('utf-8')
@@ -109,7 +120,8 @@ class UserLogin(Resource):
         resp = make_response(
             {
                 'message': 'Logged in as {}'.format(current_user.username),
-                'access_token': access_token
+                'access_token': access_token,
+                'user_data': current_user.data.to_mongo()
             }, 200
         )
 
@@ -157,21 +169,25 @@ class UserLogoutRefresh(Resource):
 class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
-        current_user = get_jwt_identity()
-        access_token = create_access_token(identity=current_user).decode('utf-8')
-        return {'access_token': access_token}
+        identity = get_jwt_identity()
+        current_user = db.User.objects(username=identity['username']).get()
+        access_token = create_access_token(identity=identity).decode('utf-8')
+        return {'access_token': access_token,
+                'user_data': current_user.data.to_mongo()}
 
 
 class UserEmailVerify(Resource):
     def get(self, email_verification_string):
         # user_id = email_verification_string
         try:
-            user = db.User.objects(email_verification_string=email_verification_string).get()
+            user = db.User.objects(parameters__email_verification_string=email_verification_string).get()
         except:
             return {'error': 'Verification string {} doesn\'t match any user'.format(email_verification_string)}, 400
 
-        if not user.email_verified:
-            db.User.objects(email_verification_string=email_verification_string).update_one(set__email_verified=True)
+        if not user.parameters.email_verified:
+            # db.User.objects(email_verification_string=email_verification_string).update_one(set__email_verified=True)
+            user.parameters.email_verified = True
+            user.save()
             return {'message': 'Email verified'}, 200
         else:
             return {'error': 'Email already verified'}, 400
@@ -192,7 +208,7 @@ class ResetPassword(Resource):
 
         def send_email():
             try:
-                current_user = db.User.objects(email=data.email).get()
+                current_user = db.User.objects(data__email=data.email).get()
             except:
                 return return_message()
 
@@ -266,6 +282,57 @@ class ResetPassword(Resource):
     #     return {'message': f'Your token was {data.token}.'}
 
 
+class UserUpdate(Resource):
+    @jwt_required()
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', help='This field cannot be blank', required=True)
+        parser.add_argument('user_data', help='This field cannot be blank', required=True)
+        data = parser.parse_args()
+
+        username = data.username
+        current_user = get_jwt_identity()['username']
+        current_role = get_jwt_identity()['role']
+        user_data = json.loads(data.user_data)
+        # print(username)
+        # print(user_data)
+
+        if username == current_user:
+            user = db.User.objects(username=username).get()
+            # print(user.data)
+            user_data_obj = user.data
+            user.elo = 'elo'
+
+            current_user_data = {}
+            for key in user_data:
+                if hasattr(user_data_obj, key):
+                    setattr(user_data_obj, key, user_data[key])
+
+            # user_data_obj.age = 'age'
+            # for key in user_data_obj:
+            #     print(key)
+            # new_user_data = db.UserData(
+            #     fname='UpdatedName',
+            #     lname='UpdatedName',
+            #     email='email@email.com',
+            #     phone='123456789'
+            # )
+            # user.data = new_user_data
+            # user_data_obj.save()
+            print(db.UserData.get_unique_fields(user_data_obj))
+            try:
+                user.validate()
+                # user.save()
+            except ValidationError as err:
+                print(err)
+                print(ValidationError.to_dict(err))
+                return {'errors': ValidationError.to_dict(err)}, 400
+            except NotUniqueError as err:
+                print(err)
+            # except DuplicateKeyError as err:
+            #     print(err)
+
+
 # not auth routes
 
 class AllServices(Resource):
@@ -280,7 +347,7 @@ class UserHistory(Resource):
     @jwt_required()
     def get(self):
         current_user = get_jwt_identity()['username']
-        data_json = db.Appointment.objects(username=current_user).to_json()
+        data_json = db.Appointment.objects(username=current_user).order_by('-date').to_json()
         return Response(data_json, mimetype="application/json", status=200)
         # return {'message': 'no elo'}, 200
 
