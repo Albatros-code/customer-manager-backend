@@ -1,6 +1,7 @@
 import unittest
 import mongoengine
 import flask_app.mongoDB as db
+from flask_app.db.user import User, UserData, UserSettings, UserParameters
 
 
 # class User(mongoengine.Document):
@@ -10,21 +11,22 @@ class TestUser(unittest.TestCase):
 
     @staticmethod
     def new_user():
-        user_data = db.UserData(
+        user_data = UserData(
             phone="123456789",
             fname="John",
             lname="Rambo",
             email="email@email.com",
+            # email="email@email.com",
             age="30",
         )
-        user_settings = db.UserSettings(
+        user_settings = UserSettings(
             newsletter=False
         )
-        user_parameters = db.UserParameters(
+        user_parameters = UserParameters(
             email_verified=True,
             email_verification_string='emailverificationstring',
         )
-        user = db.User(
+        user = User(
             role='user',
             username='User1',
             password='password',
@@ -47,7 +49,7 @@ class TestUser(unittest.TestCase):
         user = self.new_user()
         user.save()
 
-        new_user = db.User.objects().first()
+        new_user = User.objects().first()
         assert new_user.role == 'user'
         assert new_user.username == 'User1'
         assert new_user.password == 'password'
@@ -68,16 +70,20 @@ class TestUser(unittest.TestCase):
         user.save()
 
         user2 = self.new_user()
-        # user2.username = 'User2'
-        # user2.data.email = 'email2@email.com
-        user2.data.phone = '123'
+        user2.username = 'User2'
+        user2.data.email = 'email2@email.com'
+        user2.data.phone = '123789456'
         errors = user2.validate_doc()
         if errors:
             print(errors)
         else:
-            user2.save()
+            print('saving')
+            try:
+                user2.save()
+            except mongoengine.NotUniqueError as err:
+                print(err)
 
-        # user_update = db.User.objects().first()
+        # user_update = User.objects().first()
         # user_update.data.lname = "BonJovi"
         # user_update.save()
 
@@ -86,31 +92,9 @@ class TestUser(unittest.TestCase):
 
         assert True
 
-    def test_add_dictionaries(self):
-        dict1 = {'a': {'val1': 'msg'}, 'b': {'c': {'val3': 'msg'}, 'd': {'e': {'val5': 'msg'}}}}
-        dict2 = {'a': {'val2': 'msg'}, 'b': {'c': {'val4': 'msg'}, 'd': {'e': {'val6': 'msg'}}}}
+    # def test_add_dictionaries(self):
+    #     dict1 = {'a': {'val1': 'msg'}, 'b': {'c': {'val3': 'msg'}, 'd': {'e': {'val5': 'msg'}}}}
+    #     dict2 = {'a': {'val2': 'msg'}, 'b': {'c': {'val4': 'msg'}, 'd': {'e': {'val6': 'msg'}}}}
+    #
+    #     print(f'Result:\n{merge_dicts([dict1, dict2])}')
 
-        print(f'Result:\n{merge_dicts([dict1, dict2])}')
-
-
-def merge_dicts(dicts):
-    print('\n')
-    new_dict = {}
-
-    def add_to_new_dict(dict_to_add, new_dict):
-        for (key, val) in dict_to_add.items():
-            if isinstance(val, dict):
-                if key in new_dict:
-                    next_dict = new_dict[key]
-                else:
-                    next_dict = {}
-                    new_dict[key] = next_dict
-
-                add_to_new_dict(val, next_dict)
-            else:
-                new_dict[key] = val
-
-    for item in dicts:
-        add_to_new_dict(item, new_dict)
-
-    return new_dict

@@ -8,7 +8,8 @@ from flask import Response, make_response
 from mongoengine import ValidationError, NotUniqueError
 from pymongo.errors import DuplicateKeyError
 
-from .mongoDB import User, RevokedToken
+from flask_app.db.user import User
+from .mongoDB import RevokedToken
 from . import mongoDB as db
 from . import util as util
 from . import emails
@@ -94,7 +95,7 @@ class UserLogin(Resource):
         data = parser_login.parse_args()
         # Check if username exist
         try:
-            current_user = db.User.objects(username=data['username']).get()
+            current_user = User.objects(username=data['username']).get()
         except:
             # return {'errors': {'username': 'User {} doesn\'t exist'.format(data['username'])}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
@@ -170,7 +171,7 @@ class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
         identity = get_jwt_identity()
-        current_user = db.User.objects(username=identity['username']).get()
+        current_user = User.objects(username=identity['username']).get()
         access_token = create_access_token(identity=identity).decode('utf-8')
         return {'access_token': access_token,
                 'user_data': current_user.data.to_mongo()}
@@ -180,12 +181,12 @@ class UserEmailVerify(Resource):
     def get(self, email_verification_string):
         # user_id = email_verification_string
         try:
-            user = db.User.objects(parameters__email_verification_string=email_verification_string).get()
+            user = User.objects(parameters__email_verification_string=email_verification_string).get()
         except:
             return {'error': 'Verification string {} doesn\'t match any user'.format(email_verification_string)}, 400
 
         if not user.parameters.email_verified:
-            # db.User.objects(email_verification_string=email_verification_string).update_one(set__email_verified=True)
+            # User.objects(email_verification_string=email_verification_string).update_one(set__email_verified=True)
             user.parameters.email_verified = True
             user.save()
             return {'message': 'Email verified'}, 200
@@ -208,7 +209,7 @@ class ResetPassword(Resource):
 
         def send_email():
             try:
-                current_user = db.User.objects(data__email=data.email).get()
+                current_user = User.objects(data__email=data.email).get()
             except:
                 return return_message()
 
@@ -235,7 +236,7 @@ class ResetPassword(Resource):
 
                 for doc in reset_passwords:
                     if db.ResetPassword.verify_hash(data.token, doc.token):
-                        current_user = db.User.objects(username=doc.username).get()
+                        current_user = User.objects(username=doc.username).get()
                         doc.delete()
                         break
                 if not current_user: raise
@@ -246,7 +247,7 @@ class ResetPassword(Resource):
             print(current_user.username)
             print(data.password)
             try:
-                current_user.password = db.User.generate_hash(data.password)
+                current_user.password = User.generate_hash(data.password)
                 current_user.save()
             except:
                 return {'message': 'password change failed'}
@@ -298,7 +299,7 @@ class UserUpdate(Resource):
         # print(user_data)
 
         if username == current_user:
-            user = db.User.objects(username=username).get()
+            user = User.objects(username=username).get()
             # print(user.data)
             user_data_obj = user.data
             user.elo = 'elo'
@@ -418,7 +419,7 @@ class AllAppointments(Resource):
         data = parser_all_appointments.parse_args()
         username = get_jwt_identity()['username']
         role = get_jwt_identity()['role']
-        user = db.User.objects(username=username).get()
+        user = User.objects(username=username).get()
 
         if user.role != role:
             return {'message': 'Unauthorized'}, 401
