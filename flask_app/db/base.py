@@ -5,6 +5,11 @@ class BaseDocument(mongoengine.Document):
     # meta = {'allow_inheritance': True}
     meta = {'abstract': True}
 
+    def clean(self):
+        errors = self.validate_doc()
+        if errors:
+            raise Exception(errors)
+
     def validate_doc(self):
         return validate_doc(self)
 

@@ -1,7 +1,8 @@
+import json
 import unittest
 import mongoengine
-import flask_app.mongoDB as db
-from flask_app.db.user import User, UserData, UserSettings, UserParameters
+import flask_app.db as db
+# from flask_app.db.user import User, UserData, UserSettings, UserParameters
 
 
 # class User(mongoengine.Document):
@@ -11,7 +12,7 @@ class TestUser(unittest.TestCase):
 
     @staticmethod
     def new_user():
-        user_data = UserData(
+        user_data = db.UserData(
             phone="123456789",
             fname="John",
             lname="Rambo",
@@ -19,14 +20,14 @@ class TestUser(unittest.TestCase):
             # email="email@email.com",
             age="30",
         )
-        user_settings = UserSettings(
+        user_settings = db.UserSettings(
             newsletter=False
         )
-        user_parameters = UserParameters(
+        user_parameters = db.UserParameters(
             email_verified=True,
             email_verification_string='emailverificationstring',
         )
-        user = User(
+        user = db.User(
             role='user',
             username='User1',
             password='password',
@@ -49,7 +50,7 @@ class TestUser(unittest.TestCase):
         user = self.new_user()
         user.save()
 
-        new_user = User.objects().first()
+        new_user = db.User.objects().first()
         assert new_user.role == 'user'
         assert new_user.username == 'User1'
         assert new_user.password == 'password'
@@ -70,25 +71,18 @@ class TestUser(unittest.TestCase):
         user.save()
 
         user2 = self.new_user()
-        user2.username = 'User2'
-        user2.data.email = 'email2@email.com'
+        user2.username = 'User'
+        user2.data.email = 'email@email.com'
         user2.data.phone = '123789456'
-        errors = user2.validate_doc()
-        if errors:
-            print(errors)
-        else:
-            print('saving')
-            try:
-                user2.save()
-            except mongoengine.NotUniqueError as err:
-                print(err)
-
-        # user_update = User.objects().first()
-        # user_update.data.lname = "BonJovi"
-        # user_update.save()
-
-        # user_update = db.User.objects()
-        # user_update.save()
+        # errors = user2.validate_doc()
+        # if errors:
+        #     print(errors)
+        # else:
+        #     print('saving')
+        try:
+            user2.save()
+        except Exception as err:
+            print(type(err.args[0]))
 
         assert True
 

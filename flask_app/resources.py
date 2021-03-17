@@ -6,11 +6,8 @@ import json
 from flask_restful import Resource, reqparse
 from flask import Response, make_response
 from mongoengine import ValidationError, NotUniqueError
-from pymongo.errors import DuplicateKeyError
 
-from flask_app.db.user import User
-from .mongoDB import RevokedToken
-from . import mongoDB as db
+import flask_app.db as db
 from . import util as util
 from . import emails
 
@@ -41,18 +38,18 @@ class UserRegistration(Resource):
     def post(self):
         data = parser_register.parse_args()
 
-        # Check uniqueness of username, email and phone
-        errors = {}
-        for key_name in ['username', 'email', 'phone']:
-            try:
-                field = User.objects(**{key_name: data[key_name]}).get()
-                if field:
-                    errors[key_name] = '{} is already taken.'.format(data[key_name])
-            except:
-                pass
-
-        if errors != {}:
-            return {'errors': errors}, 400
+        # # Check uniqueness of username, email and phone
+        # errors = {}
+        # for key_name in ['username', 'email', 'phone']:
+        #     try:
+        #         field = db.User.objects(**{key_name: data[key_name]}).get()
+        #         if field:
+        #             errors[key_name] = '{} is already taken.'.format(data[key_name])
+        #     except:
+        #         pass
+        #
+        # if errors != {}:
+        #     return {'errors': errors}, 400
 
         email_verification_string = ''.join(secrets.token_hex(16))
 
@@ -61,26 +58,28 @@ class UserRegistration(Resource):
             phone=data['phone'],
             fname=data['fname'],
             lname=data['lname'],
+            # age='1233'
         )
 
         user_parameters = db.UserParameters(
             email_verification_string=email_verification_string,
         )
 
-        new_user = User(
+        new_user = db.User(
             username=data['username'],
-            password=User.generate_hash(data['password']),
+            password=db.User.generate_hash(data['password']),
             data=user_data,
             parameters=user_parameters,
         )
         try:
-            new_user.save()
+            new_user.save(clean=False)
             # saved_user = db.User.objects(username=data['username']).get()
             # email_verification_string = saved_user.id
             emails.send_verification_email(data['email'], email_verification_string)
             return {'message': 'User {} was created.'.format(data['username'])}
 
-        except:
+        except Exception as err:
+            print(err)
             return {'error': 'Something went wrong'}, 400
 
 
@@ -95,12 +94,12 @@ class UserLogin(Resource):
         data = parser_login.parse_args()
         # Check if username exist
         try:
-            current_user = User.objects(username=data['username']).get()
+            current_user = db.User.objects(username=data['username']).get()
         except:
             # return {'errors': {'username': 'User {} doesn\'t exist'.format(data['username'])}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
 
-        if not User.verify_hash(data['password'], current_user.password):
+        if not db.User.verify_hash(data['password'], current_user.password):
             # return {'errors': {'password': 'Wrong password'}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
 
@@ -140,7 +139,7 @@ class UserLogoutAccess(Resource):
     def post(self):
         jti = get_jwt()['jti']
         try:
-            revoked_token = RevokedToken(jti=jti)
+            revoked_token = db.RevokedToken(jti=jti)
             revoked_token.save()
             return {'message': 'Access token has been revoked'}
         except:
@@ -154,7 +153,7 @@ class UserLogoutRefresh(Resource):
         jti = get_jwt()['jti']
         exp = get_jwt()['exp']
         try:
-            revoked_token = RevokedToken(
+            revoked_token = db.RevokedToken(
                 jti=jti,
                 expiration_date=datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).isoformat()
             )
@@ -171,7 +170,7 @@ class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
         identity = get_jwt_identity()
-        current_user = User.objects(username=identity['username']).get()
+        current_user = db.User.objects(username=identity['username']).get()
         access_token = create_access_token(identity=identity).decode('utf-8')
         return {'access_token': access_token,
                 'user_data': current_user.data.to_mongo()}
@@ -181,7 +180,7 @@ class UserEmailVerify(Resource):
     def get(self, email_verification_string):
         # user_id = email_verification_string
         try:
-            user = User.objects(parameters__email_verification_string=email_verification_string).get()
+            user = db.User.objects(parameters__email_verification_string=email_verification_string).get()
         except:
             return {'error': 'Verification string {} doesn\'t match any user'.format(email_verification_string)}, 400
 
@@ -209,7 +208,7 @@ class ResetPassword(Resource):
 
         def send_email():
             try:
-                current_user = User.objects(data__email=data.email).get()
+                current_user = db.User.objects(data__email=data.email).get()
             except:
                 return return_message()
 
@@ -236,18 +235,16 @@ class ResetPassword(Resource):
 
                 for doc in reset_passwords:
                     if db.ResetPassword.verify_hash(data.token, doc.token):
-                        current_user = User.objects(username=doc.username).get()
+                        current_user = db.User.objects(username=doc.username).get()
                         doc.delete()
                         break
-                if not current_user: raise
+                if not current_user:
+                    raise
             except:
                 return {'message': 'token not found'}, 400
 
-            print('change password')
-            print(current_user.username)
-            print(data.password)
             try:
-                current_user.password = User.generate_hash(data.password)
+                current_user.password = db.User.generate_hash(data.password)
                 current_user.save()
             except:
                 return {'message': 'password change failed'}
@@ -299,40 +296,21 @@ class UserUpdate(Resource):
         # print(user_data)
 
         if username == current_user:
-            user = User.objects(username=username).get()
+            user = db.User.objects(username=username).get()
             # print(user.data)
             user_data_obj = user.data
             user.elo = 'elo'
 
             current_user_data = {}
             for key in user_data:
-                if hasattr(user_data_obj, key):
-                    setattr(user_data_obj, key, user_data[key])
+                # if hasattr(user_data_obj, key):
+                setattr(user_data_obj, key, user_data[key])
 
-            # user_data_obj.age = 'age'
-            # for key in user_data_obj:
-            #     print(key)
-            # new_user_data = db.UserData(
-            #     fname='UpdatedName',
-            #     lname='UpdatedName',
-            #     email='email@email.com',
-            #     phone='123456789'
-            # )
-            # user.data = new_user_data
-            # user_data_obj.save()
-            print(db.UserData.get_unique_fields(user_data_obj))
             try:
-                user.validate()
-                # user.save()
-            except ValidationError as err:
-                print(err)
-                print(ValidationError.to_dict(err))
-                return {'errors': ValidationError.to_dict(err)}, 400
-            except NotUniqueError as err:
-                print(err)
-            # except DuplicateKeyError as err:
-            #     print(err)
-
+                user.save(clean=True)
+            except Exception as err:
+                # print(err.args[0])
+                return {'errors': err.args[0]}, 400
 
 # not auth routes
 
@@ -398,7 +376,7 @@ class Appointment(Resource):
 class AllUsers(Resource):
     @jwt_required()
     def get(self):
-        data_json = User.objects.to_json()
+        data_json = db.User.objects.to_json()
         return Response(data_json, mimetype="application/json", status=200)
         # return json.loads(data_json)
 
@@ -419,7 +397,7 @@ class AllAppointments(Resource):
         data = parser_all_appointments.parse_args()
         username = get_jwt_identity()['username']
         role = get_jwt_identity()['role']
-        user = User.objects(username=username).get()
+        user = db.User.objects(username=username).get()
 
         if user.role != role:
             return {'message': 'Unauthorized'}, 401

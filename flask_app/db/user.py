@@ -29,8 +29,9 @@ def validate_email(val: str):
 
 
 def validate_age(val):
-    if val == '11':
-        raise mongoengine.ValidationError("Age must be two digit.")
+    pass
+    # if val == '11':
+    #     raise mongoengine.ValidationError("Age must be two digit.")
 
 
 def validate_password(val: str):
@@ -43,7 +44,7 @@ class UserData(mongoengine.EmbeddedDocument):
     fname = mongoengine.StringField(validation=validate_fname)
     lname = mongoengine.StringField(validation=validate_lname)
     email = mongoengine.EmailField(unique=True, validation=validate_email)
-    age = mongoengine.IntField(validation=validate_age)
+    age = mongoengine.StringField(validation=validate_age)
 
 
 class UserSettings(mongoengine.EmbeddedDocument):
@@ -67,10 +68,11 @@ class User(BaseDocument):
     settings = mongoengine.EmbeddedDocumentField(UserSettings)
     parameters = mongoengine.EmbeddedDocumentField(UserParameters)
 
-    def clean(self):
-        errors = self.validate_doc()
-        print('\n')
-        print(errors)
+    # def clean(self):
+    #     errors = self.validate_doc()
+    #     if errors:
+    #         raise Exception(errors)
+
 
     @staticmethod
     def get_unique_fields():

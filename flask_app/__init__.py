@@ -7,7 +7,8 @@ from flask_restful import Api
 from . import resources
 # database
 # from .mongoDB import db, User, RevokedToken
-from . import mongoDB as db
+# from . import mongoDB as db
+import flask_app.db as db
 from .scheduler import scheduler
 # JWT stuff
 from flask_jwt_extended import JWTManager
