@@ -5,13 +5,7 @@ import json
 
 from flask_restful import Resource, reqparse
 from flask import Response, make_response
-from mongoengine import ValidationError, NotUniqueError
 
-import flask_app.db as db
-from . import util as util
-from . import emails
-
-# import pytz
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -24,32 +18,22 @@ from flask_jwt_extended import (
 
 from flask_cors import cross_origin
 
-parser_register = reqparse.RequestParser()
-parser_register.add_argument('username', help='This field cannot be blank', required=True)
-parser_register.add_argument('password', help='This field cannot be blank', required=True)
-parser_register.add_argument('email', help='This field cannot be blank', required=True)
-parser_register.add_argument('phone', help='This field cannot be blank', required=True)
-parser_register.add_argument('fname', help='This field cannot be blank', required=True)
-parser_register.add_argument('lname', help='This field cannot be blank', required=True)
+import flask_app.db as db
+import flask_app.util as util
+import flask_app.emails as emails
 
 
 class UserRegistration(Resource):
     @cross_origin()
     def post(self):
-        data = parser_register.parse_args()
-
-        # # Check uniqueness of username, email and phone
-        # errors = {}
-        # for key_name in ['username', 'email', 'phone']:
-        #     try:
-        #         field = db.User.objects(**{key_name: data[key_name]}).get()
-        #         if field:
-        #             errors[key_name] = '{} is already taken.'.format(data[key_name])
-        #     except:
-        #         pass
-        #
-        # if errors != {}:
-        #     return {'errors': errors}, 400
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', help='This field cannot be blank', required=True)
+        parser.add_argument('password', help='This field cannot be blank', required=True)
+        parser.add_argument('email', help='This field cannot be blank', required=True)
+        parser.add_argument('phone', help='This field cannot be blank', required=True)
+        parser.add_argument('fname', help='This field cannot be blank', required=True)
+        parser.add_argument('lname', help='This field cannot be blank', required=True)
+        data = parser.parse_args()
 
         email_verification_string = ''.join(secrets.token_hex(16))
 
@@ -58,7 +42,6 @@ class UserRegistration(Resource):
             phone=data['phone'],
             fname=data['fname'],
             lname=data['lname'],
-            # age='1233'
         )
 
         user_parameters = db.UserParameters(
@@ -67,40 +50,38 @@ class UserRegistration(Resource):
 
         new_user = db.User(
             username=data['username'],
-            password=db.User.generate_hash(data['password']),
+            # password=db.User.generate_hash(data['password']),
+            password=data['password'],
             data=user_data,
             parameters=user_parameters,
         )
         try:
-            new_user.save(clean=False)
-            # saved_user = db.User.objects(username=data['username']).get()
-            # email_verification_string = saved_user.id
+            # new_user.save()
+            new_user.save(new_password_check=True)
             emails.send_verification_email(data['email'], email_verification_string)
             return {'message': 'User {} was created.'.format(data['username'])}
 
-        except Exception as err:
+        except ValueError as err:
             print(err)
+            return {'errors': err.args[0]}, 400
+        except:
             return {'error': 'Something went wrong'}, 400
-
-
-parser_login = reqparse.RequestParser()
-parser_login.add_argument('username', help='This field cannot be blank', required=True)
-parser_login.add_argument('password', help='This field cannot be blank', required=True)
 
 
 class UserLogin(Resource):
     @cross_origin()
     def post(self):
-        data = parser_login.parse_args()
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', help='This field cannot be blank', required=True)
+        parser.add_argument('password', help='This field cannot be blank', required=True)
+        data = parser.parse_args()
         # Check if username exist
         try:
             current_user = db.User.objects(username=data['username']).get()
         except:
-            # return {'errors': {'username': 'User {} doesn\'t exist'.format(data['username'])}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
 
         if not db.User.verify_hash(data['password'], current_user.password):
-            # return {'errors': {'password': 'Wrong password'}}, 400
             return {'errors': {'general': 'Wrong credentials.'}}, 400
 
         if not current_user.parameters.email_verified:
@@ -109,10 +90,6 @@ class UserLogin(Resource):
         identity = {
             'username': data['username'],
             'role': current_user.role,
-            # 'data': {
-            #     'name': 'John',
-            #     'phoneNumber': '123-456-789',
-            # }
         }
         access_token = create_access_token(identity=identity).decode('utf-8')
         refresh_token = create_refresh_token(identity=identity).decode('utf-8')
@@ -125,7 +102,6 @@ class UserLogin(Resource):
             }, 200
         )
 
-        # resp.set_cookie('refresh_token_cookie', value = refresh_token, httponly=True)
         set_refresh_cookies(resp, refresh_token)
 
         return resp
@@ -193,91 +169,63 @@ class UserEmailVerify(Resource):
             return {'error': 'Email already verified'}, 400
 
 
-class ResetPassword(Resource):
+class PasswordResetSendEmail(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('action', help='This field cannot be blank', required=True)
         parser.add_argument('email')
-        parser.add_argument('token')
-        parser.add_argument('password')
-
         data = parser.parse_args()
 
-        def return_message():
+        def common_return_message():
             return 200
 
-        def send_email():
-            try:
-                current_user = db.User.objects(data__email=data.email).get()
-            except:
-                return return_message()
+        try:
+            current_user = db.User.objects(data__email=data.email).get()
+        except:
+            return common_return_message()
 
-            rest_password_token = secrets.token_hex(16)
-            rest_password = db.ResetPassword(
-                username=current_user.username,
-                token=db.ResetPassword.generate_hash(rest_password_token),
-                date=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            )
-            try:
-                rest_password.save()
-            except:
-                return return_message()
+        rest_password_token = secrets.token_hex(16)
+        rest_password = db.ResetPassword(
+            username=current_user.username,
+            token=db.ResetPassword.generate_hash(rest_password_token),
+            date=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        )
+        try:
+            rest_password.save()
+        except:
+            return common_return_message()
 
-            emails.send_reset_password_email(data['email'], rest_password_token)
-            return return_message()
+        emails.send_reset_password_email(data['email'], rest_password_token)
+        return common_return_message()
 
-        def change_password():
-            # token_hash = db.ResetPassword.generate_hash(data.token)
 
-            try:
-                yesterday = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).isoformat()
-                reset_passwords = db.ResetPassword.objects(date__gt=yesterday)
+class PasswordResetPasswordChange(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('token')
+        parser.add_argument('password')
+        data = parser.parse_args()
 
-                for doc in reset_passwords:
-                    if db.ResetPassword.verify_hash(data.token, doc.token):
-                        current_user = db.User.objects(username=doc.username).get()
-                        doc.delete()
-                        break
-                if not current_user:
-                    raise
-            except:
-                return {'message': 'token not found'}, 400
+        try:
+            yesterday = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).isoformat()
+            reset_passwords = db.ResetPassword.objects(date__gt=yesterday)
 
-            try:
-                current_user.password = db.User.generate_hash(data.password)
-                current_user.save()
-            except:
-                return {'message': 'password change failed'}
+            for doc in reset_passwords:
+                if db.ResetPassword.verify_hash(data.token, doc.token):
+                    current_user = db.User.objects(username=doc.username).get()
+                    doc.delete()
+                    break
+            if not current_user:
+                raise
+        except:
+            return {'message': 'token not found'}, 400
 
-            return {'message': 'changing password'}, 200
+        try:
+            current_user.password = db.User.generate_hash(data.password)
+            current_user.save()
+        except:
+            return {'message': 'password change failed'}, 400
 
-        switcher = {
-            "send_email": send_email,
-            "change_password": change_password
-        }
-
-        action = switcher.get(data.action, return_message)
-
-        return action()
-
-    # def get(self):
-    #     parser = reqparse.RequestParser()
-    #     parser.add_argument('token')
-    #     parser.add_argument('check')
-    #     data = parser.parse_args()
-    #
-    #     if data.token:
-    #         try:
-    #             reset_password = db.ResetPassword.objects(token=db.ResetPassword.verify_hash(data.token)).get()
-    #         except:
-    #             return {'error': 'ERROR'}, 400
-    #     else:
-    #         return {'error': 'ERROR'}, 400
-    #
-    #     if bool(data.check):
-    #         return {'message': 'token is valid'}
-    #
-    #     return {'message': f'Your token was {data.token}.'}
+        return {'message': 'password changed'}, 200
 
 
 class UserUpdate(Resource):
@@ -292,24 +240,18 @@ class UserUpdate(Resource):
         current_user = get_jwt_identity()['username']
         current_role = get_jwt_identity()['role']
         user_data = json.loads(data.user_data)
-        # print(username)
-        # print(user_data)
 
         if username == current_user:
             user = db.User.objects(username=username).get()
             # print(user.data)
             user_data_obj = user.data
-            user.elo = 'elo'
 
-            current_user_data = {}
             for key in user_data:
-                # if hasattr(user_data_obj, key):
                 setattr(user_data_obj, key, user_data[key])
 
             try:
                 user.save(clean=True)
             except Exception as err:
-                # print(err.args[0])
                 return {'errors': err.args[0]}, 400
 
 # not auth routes
@@ -427,19 +369,13 @@ class AllAppointments(Resource):
         return data, 200
 
 
-parser_available_dates = reqparse.RequestParser()
-parser_available_dates.add_argument('start_hour', help='This field cannot be blank', required=True)
-parser_available_dates.add_argument('end_hour', help='This field cannot be blank', required=True)
-parser_available_dates.add_argument('interval', help='This field cannot be blank', required=True)
-
-
 class AvailableDates(Resource):
-    # @cross_origin()
-    # @jwt_required()
     def post(self):
-        print('-------------------- preparing available dates')
-        # now = datetime.datetime.now()
-        data = parser_available_dates.parse_args()
+        parser = reqparse.RequestParser()
+        parser.add_argument('start_hour', help='This field cannot be blank', required=True)
+        parser.add_argument('end_hour', help='This field cannot be blank', required=True)
+        parser.add_argument('interval', help='This field cannot be blank', required=True)
+        data = parser.parse_args()
 
         start_hour = int(data['start_hour'])
         end_hour = int(data['end_hour'])

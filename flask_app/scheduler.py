@@ -1,7 +1,7 @@
 import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import mongoDB as db
+import flask_app.db as db
 
 
 def remove_invalid_reset_password_token():

@@ -8,7 +8,6 @@ from flask_app.db.base import BaseDocument
 
 
 def validate_phone(phone):
-    # phone structure
     if not re.search("^\\d{9}$", phone):
         raise mongoengine.ValidationError("9 digit number required.")
 
@@ -30,13 +29,13 @@ def validate_email(val: str):
 
 def validate_age(val):
     pass
-    # if val == '11':
-    #     raise mongoengine.ValidationError("Age must be two digit.")
+    if not re.search("^\\d{2}$", val):
+        raise mongoengine.ValidationError("Not valid age.")
 
 
 def validate_password(val: str):
-    if len(val) < 8:
-        raise mongoengine.ValidationError("8 digit required.")
+    if len(val) < 60:
+        raise mongoengine.ValidationError("Wrong password.")
 
 
 class UserData(mongoengine.EmbeddedDocument):
@@ -68,11 +67,9 @@ class User(BaseDocument):
     settings = mongoengine.EmbeddedDocumentField(UserSettings)
     parameters = mongoengine.EmbeddedDocumentField(UserParameters)
 
-    # def clean(self):
-    #     errors = self.validate_doc()
-    #     if errors:
-    #         raise Exception(errors)
-
+    def save(self, new_password_check: bool = False, *args, **kwargs):
+        errors = validate_new_password(self, new_password_check)
+        super().save(errors=errors)
 
     @staticmethod
     def get_unique_fields():
@@ -87,3 +84,16 @@ class User(BaseDocument):
     @staticmethod
     def verify_hash(password, hash_):
         return sha256.verify(password, hash_)
+
+    # def validate_new_password(self):
+    #     validate_new_password(self.password)
+
+
+def validate_new_password(doc: User, validate: bool = False):
+    if not validate: return {}
+
+    if len(doc.password) < 8:
+        # raise mongoengine.ValidationError("8 digit required.")
+        return {"password": {doc.password: "8 digit required"}}
+
+    doc.password = doc.generate_hash(doc.password)

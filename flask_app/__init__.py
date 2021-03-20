@@ -68,7 +68,8 @@ def create_app():
     api.add_resource(resources.UserLogoutRefresh, '/logout/refresh')
     api.add_resource(resources.TokenRefresh, '/token/refresh')
     api.add_resource(resources.UserEmailVerify, '/registration/<string:email_verification_string>')
-    api.add_resource(resources.ResetPassword, '/reset-password')
+    api.add_resource(resources.PasswordResetSendEmail, '/password-reset/send-email')
+    api.add_resource(resources.PasswordResetPasswordChange, '/password-reset/change-password')
     api.add_resource(resources.UserUpdate, '/user/update')
     # api.add_resource(resources.ResetPassword, '/reset-password/<string:reset_password_string>')
 

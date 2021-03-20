@@ -5,16 +5,27 @@ class BaseDocument(mongoengine.Document):
     # meta = {'allow_inheritance': True}
     meta = {'abstract': True}
 
-    def clean(self):
-        errors = self.validate_doc()
+    def save(self, clean: bool = True, errors: dict = None, *args, **kwargs):
+        if errors is None:
+            errors = {}
+        if clean:
+            self.clean(errors)
+        super().save(clean=False)
+
+    def clean(self, other_errors: dict = None):
+        if other_errors is None:
+            other_errors = {}
+        errors = self.validate_doc(other_errors)
         if errors:
-            raise Exception(errors)
+            raise ValueError(errors)
 
-    def validate_doc(self):
-        return validate_doc(self)
+    def validate_doc(self, other_errors):
+        return validate_doc(self, other_errors)
 
 
-def validate_doc(doc):
+def validate_doc(doc, other_errors: dict = None):
+    if other_errors is None:
+        other_errors = {}
 
     unique_fields = type(doc).get_unique_fields()
 
@@ -31,7 +42,7 @@ def validate_doc(doc):
     # print('unique')
     # print(unique_errors)
 
-    errors = merge_dicts([field_errors, unique_errors])
+    errors = merge_dicts([field_errors, unique_errors, other_errors])
 
     if errors != {}:
         return errors
@@ -107,7 +118,6 @@ def merge_dicts(dicts):
         add_to_new_dict(item, new_dict)
 
     return new_dict
-
 
 # def merge_errors(error_lists, document):
 #     merged_errors = {}
