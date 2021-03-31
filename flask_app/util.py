@@ -62,31 +62,48 @@ def generateTimeSpace(day, start_hour, end_hour, interval):
 # def from_ISO_string(iso_string):
     # return datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
 
+
 def from_ISO_string(iso_string):
+    if iso_string is None:
+        return
     local_timezone = pytz.timezone("Europe/Warsaw")
     utc_time = datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ")
     local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(local_timezone)
     return local_time
 
 
+def to_ISO_string(date_obj):
+    date_utc = date_obj.astimezone(pytz.utc)
+    return date_utc.strftime('%Y-%m-%dT%H:%M:%S.') + date_utc.strftime('%fZ')[3:]
 
 
+def datetime_now_local():
+    local_timezone = pytz.timezone("Europe/Warsaw")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    now_local = now.astimezone(local_timezone)
+    return now_local
 
-day = datetime.datetime.now(datetime.timezone.utc)
-start_hour = 12
-end_hour = 20
-interval = 15
-generateTimeSpace(day, start_hour, end_hour, interval)
-# print(generateTimeSpace(day, start_hour, end_hour, interval))
+# local_timezone = pytz.timezone("Europe/Warsaw")
+# now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=123)
+# now_local = now.replace(tzinfo=pytz.utc).astimezone(local_timezone)
+# print(to_ISO_string(now_local))
 
-iso_string = '2021-01-31T18:00:00.000Z'
 
-local_timezone = pytz.timezone("Europe/Warsaw")
-utc_time = datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(local_timezone)
-
-# print(local_time)
-delta = datetime.timedelta(minutes=15)
+# day = datetime.datetime.now(datetime.timezone.utc)
+# start_hour = 12
+# end_hour = 20
+# interval = 15
+# generateTimeSpace(day, start_hour, end_hour, interval)
+# # print(generateTimeSpace(day, start_hour, end_hour, interval))
+#
+# iso_string = '2021-01-31T18:00:00.000Z'
+#
+# local_timezone = pytz.timezone("Europe/Warsaw")
+# utc_time = datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+# local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(local_timezone)
+#
+# # print(local_time)
+# delta = datetime.timedelta(minutes=15)
 # print(local_time + delta)
 
 

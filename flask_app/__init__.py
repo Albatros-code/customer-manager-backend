@@ -9,6 +9,7 @@ from . import resources
 # from .mongoDB import db, User, RevokedToken
 # from . import mongoDB as db
 import flask_app.db as db
+from flask_app.resources_new import resources as resources_list
 from .scheduler import scheduler
 # JWT stuff
 from flask_jwt_extended import JWTManager
@@ -31,10 +32,10 @@ def create_app():
         JWT_BLACKLIST_ENABLED=True,
         JWT_BLACKLIST_TOKEN_CHECKS=['access', 'refresh'],
         CORS_SUPPORTS_CREDENTIALS=True,
-        CORS_ORIGINS="http://localhost:3000",
+        CORS_ORIGINS=["http://localhost:3000"],
         # CORS_ORIGINS="localhost:3000",
         JWT_COOKIE_CSRF_PROTECT=False,
-        # JWT_ACCESS_TOKEN_EXPIRES = 15
+        # JWT_ACCESS_TOKEN_EXPIRES=15,
     )
 
     # app.config['JWT_COOKIE_CSRF_PROTECT'] = False
@@ -52,6 +53,10 @@ def create_app():
         jti = payload['jti']
         return db.RevokedToken.is_jti_blocklisted(jti)
 
+    # @jwt.expired_token_loader
+    # def expired_token_message(header, payload):
+    #     return {'message': 'token expired'}
+
     # Serve React App
     # @app.route('/', defaults={'path': ''})
     # @app.route('/<path:path>')
@@ -62,30 +67,7 @@ def create_app():
     #     else:
     #         return send_from_directory(app.static_folder, 'index.html')
 
-    api.add_resource(resources.UserRegistration, '/registration')
-    api.add_resource(resources.UserLogin, '/login')
-    api.add_resource(resources.UserLogoutAccess, '/logout/access')
-    api.add_resource(resources.UserLogoutRefresh, '/logout/refresh')
-    api.add_resource(resources.TokenRefresh, '/token/refresh')
-    api.add_resource(resources.UserEmailVerify, '/registration/<string:email_verification_string>')
-    api.add_resource(resources.PasswordResetSendEmail, '/password-reset/send-email')
-    api.add_resource(resources.PasswordResetPasswordChange, '/password-reset/change-password')
-    api.add_resource(resources.UserUpdate, '/user/update')
-    # api.add_resource(resources.ResetPassword, '/reset-password/<string:reset_password_string>')
-
-    api.add_resource(resources.AllUsers, '/users')
-    api.add_resource(resources.SecretResource, '/secret')
-
-    api.add_resource(resources.AllServices, '/services')
-    api.add_resource(resources.UserHistory, '/history')
-    api.add_resource(resources.Appointment, '/appointment')
-    api.add_resource(resources.AvailableDates, '/available-dates')
-
-    api.add_resource(resources.AllAppointments, '/admin/appointments')
-
-    # @app.after_request
-    # def apply_caching(response):
-    #     response.headers["Access-Control-Allow-Origin"] = "*"
-    #     return response
+    for (resource, url) in resources_list:
+        api.add_resource(resource, url)
 
     return app
