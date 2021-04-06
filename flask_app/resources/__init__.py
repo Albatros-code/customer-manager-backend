@@ -37,6 +37,10 @@ from .settings import (
     SettingsDefault,
 )
 
+from .util import (
+    CurrentDate
+)
+
 resources = [
     (UserRegistration, '/registration'),
     (UserLogin, '/login'),
@@ -61,6 +65,8 @@ resources = [
     (AvailableSlots, '/available-slots'),
 
     (Settings, '/settings'),
-    (SettingsDefault, '/settings/default')
+    (SettingsDefault, '/settings/default'),
+
+    (CurrentDate, '/util/current-date')
 ]
 

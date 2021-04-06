@@ -85,10 +85,12 @@ def datetime_now_local():
 
 
 def datetime_new_local(day, hour, minute):
+    now = datetime.datetime.now(datetime.timezone.utc)
     local_timezone = pytz.timezone("Europe/Warsaw")
-    date = datetime.datetime.strptime(f'{day}T{hour}:{minute}:00.000', "%Y-%m-%dT%H:%M:%S.%f")
-    date_local = date.astimezone(local_timezone)
-    return date_local
+    date_local = now.astimezone(local_timezone)
+
+    date = date_local.strptime(f'{day}T{hour}:{minute}:00.000', "%Y-%m-%dT%H:%M:%S.%f")
+    return date
 
 
 def merge_dicts(dicts):

@@ -20,8 +20,10 @@ def create_app():
         JWT_BLACKLIST_ENABLED=True,
         JWT_BLACKLIST_TOKEN_CHECKS=['access', 'refresh'],
         CORS_SUPPORTS_CREDENTIALS=True,
-        CORS_ORIGINS=["http://localhost:3000"],
+        CORS_ORIGINS=[os.environ.get('FRONTEND_HOST')],
         JWT_COOKIE_CSRF_PROTECT=False,
+        JWT_COOKIE_SECURE=True,
+        JWT_COOKIE_SAMESITE='None',
     )
 
     mongoengine.connect('project1', host=os.environ.get('MONGO_URI'))
