@@ -34,11 +34,11 @@ class User(Resource):
     @jwt_required()
     def get(self, id):
         if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == id:
-            print(id)
-            print(get_jwt_identity()['id'])
             return {'message': 'Forbidden'}, 403
-
-        user_doc = db.User.objects(id=id).get()
+        try:
+            user_doc = db.User.objects(id=id).get()
+        except:
+            return {'err': 'no user found'}, 404
         user_dict = user_doc.to_mongo().to_dict()
         user = {
             'id': str(user_doc.id),
@@ -89,7 +89,7 @@ class UserAppointments(Resource):
         if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == id:
             return {'message': 'Forbidden'}, 403
 
-        appointments = db.Appointment.objects(user=id).order_by('-date')
+        appointments = db.Appointment.objects(user=id).order_by('-date').limit(20)
 
         data = []
         for appointment in appointments:

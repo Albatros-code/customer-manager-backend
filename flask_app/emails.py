@@ -11,15 +11,6 @@ load_dotenv()
 port = 465  # For SSL
 sender_email = os.environ.get('EMAIL_USER')
 password = os.environ.get('EMAIL_PASSWORD')
-# receiver_email = sender_email
-
-
-# Create a secure SSL context
-# context = ssl.create_default_context()
-
-# with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-#     server.login(sender_email, password)
-#     server.sendmail(sender_email, receiver_email, message.as_string())
 
 
 def send_verification_email(receiver_email, email_verification_string):
@@ -50,6 +41,7 @@ def send_verification_email(receiver_email, email_verification_string):
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
+
 def send_reset_password_email(receiver_email: str, reset_password_string: str):
     message = MIMEMultipart("alternative")
     message["Subject"] = "CustomerApp password reset"
@@ -79,5 +71,3 @@ def send_reset_password_email(receiver_email: str, reset_password_string: str):
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
-
-# send_verification_email(receiver_email, '5ffb420d4a0f7e9caf30e0d0', 'noElo')

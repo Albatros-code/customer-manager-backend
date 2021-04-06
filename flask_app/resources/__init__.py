@@ -16,7 +16,8 @@ from .users import (
 )
 
 from .appointments import (
-    Appointments
+    Appointments,
+    Appointment,
 )
 
 from .services import (
@@ -25,6 +26,10 @@ from .services import (
 
 from .available_dates import (
     AvailableDates
+)
+
+from .available_hours import (
+    AvailableSlots
 )
 
 from .settings import (
@@ -47,10 +52,13 @@ resources = [
     (UserAppointments, '/users/<string:id>/appointments'),
 
     (Appointments, '/appointments'),
+    (Appointment, '/appointment/<string:id>'),
 
     (Services, '/services'),
 
     (AvailableDates, '/available-dates'),
+
+    (AvailableSlots, '/available-slots'),
 
     (Settings, '/settings'),
     (SettingsDefault, '/settings/default')

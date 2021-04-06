@@ -83,6 +83,35 @@ def datetime_now_local():
     now_local = now.astimezone(local_timezone)
     return now_local
 
+
+def datetime_new_local(day, hour, minute):
+    local_timezone = pytz.timezone("Europe/Warsaw")
+    date = datetime.datetime.strptime(f'{day}T{hour}:{minute}:00.000', "%Y-%m-%dT%H:%M:%S.%f")
+    date_local = date.astimezone(local_timezone)
+    return date_local
+
+
+def merge_dicts(dicts):
+    new_dict = {}
+
+    def add_to_new_dict(dict_to_add, new_dict):
+        for (key, val) in dict_to_add.items():
+            if isinstance(val, dict):
+                if key in new_dict:
+                    next_dict = new_dict[key]
+                else:
+                    next_dict = {}
+                    new_dict[key] = next_dict
+
+                add_to_new_dict(val, next_dict)
+            else:
+                new_dict[key] = val
+
+    for item in dicts:
+        add_to_new_dict(item, new_dict)
+
+    return new_dict
+
 # local_timezone = pytz.timezone("Europe/Warsaw")
 # now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=123)
 # now_local = now.replace(tzinfo=pytz.utc).astimezone(local_timezone)
