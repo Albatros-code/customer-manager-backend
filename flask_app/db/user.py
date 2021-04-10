@@ -28,7 +28,7 @@ def validate_email(val: str):
 
 
 def validate_age(val):
-    pass
+
     if not re.search("^\\d{2}$", val):
         raise mongoengine.ValidationError("Not valid age.")
 

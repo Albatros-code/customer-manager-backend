@@ -37,8 +37,8 @@ class Appointments(Resource):
         response_data = []
         for appointment in appointments:
             current_date = util.from_ISO_string(appointment.date)
-            if int(current_date.strftime('%H')) >= settings.startHour and int(
-                    current_date.strftime('%H')) < settings.endHour:
+            if int(current_date.strftime('%H')) >= settings.start_hour and int(
+                    current_date.strftime('%H')) < settings.end_hour:
                 appointment_data = {
                     'id': str(appointment.id),
                     'service': appointment.service,
@@ -92,7 +92,7 @@ class Appointment(Resource):
         if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == str(appointment['user']):
             return {'message': 'Forbidden'}, 403
 
-        if appointment.date <= util.to_ISO_string(util.datetime_now_local()):
+        if appointment.date <= util.to_ISO_string(util.datetime_now_local()) and get_jwt_identity()['role'] != 'admin':
             return {'error': 'Appointment cannot be deleted.'}, 400
 
         appointment.delete()

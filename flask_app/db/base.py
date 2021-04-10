@@ -22,6 +22,10 @@ class BaseDocument(mongoengine.Document):
     def validate_doc(self, other_errors):
         return validate_doc(self, other_errors)
 
+    @staticmethod
+    def get_unique_fields():
+        return []
+
 
 def validate_doc(doc, other_errors: dict = None):
     if other_errors is None:
@@ -36,11 +40,6 @@ def validate_doc(doc, other_errors: dict = None):
         doc.validate(clean=False)
     except mongoengine.ValidationError as err:
         field_errors = format_field_errors(doc, mongoengine.ValidationError.to_dict(err))
-
-    # print('\nfield')
-    # print(field_errors)
-    # print('unique')
-    # print(unique_errors)
 
     errors = merge_dicts([field_errors, unique_errors, other_errors])
 

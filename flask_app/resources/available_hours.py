@@ -113,13 +113,14 @@ def available_hours_check_args(args):
 
     checked_arguments = {}
 
+    settings = db.Settings.objects().first()
     default_start_date = util.datetime_now_local().replace(hour=0, minute=0, second=0, microsecond=0)
     defaults = {
         "start_date": default_start_date,
         "end_date": checked_arguments.get('start_date', default_start_date) + datetime.timedelta(days=7),
-        "start_hour": 0,
-        "end_hour": 24,
-        "interval": 15,
+        "start_hour": settings.start_hour,
+        "end_hour": settings.end_hour,
+        "interval": settings.time_interval,
         "service": None,
     }
 
