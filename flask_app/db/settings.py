@@ -22,6 +22,7 @@ class Settings(BaseDocument):
     start_hour = mongoengine.IntField(validation=validate_hour)
     end_hour = mongoengine.IntField(validation=validate_hour)
     time_interval = mongoengine.IntField(validation=validate_time_interval)
+    working_days = mongoengine.DictField()
 
     def save(self, *args, **kwargs):
         errors = validate_hours(self)

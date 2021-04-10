@@ -10,7 +10,33 @@ import flask_app.db as db
 
 class Settings(Resource):
     def get(self):
-        settings = db.Settings.objects().first().to_mongo().to_dict()
+
+        settings = db.Settings.objects().first()
+
+        if settings is None:
+            settings = db.Settings()
+
+            default_settings = {
+                'start_hour': 12,
+                'end_hour': 20,
+                'time_interval': 15,
+                'working_days': {
+                    '0': True,
+                    '1': True,
+                    '2': True,
+                    '3': True,
+                    '4': True,
+                    '5': True,
+                    '6': True,
+                }
+            }
+
+            for (setting, val) in default_settings.items():
+                setattr(settings, setting, val)
+
+            settings.save()
+
+        settings = settings.to_mongo().to_dict()
         del settings['_id']
         return settings, 200
 
