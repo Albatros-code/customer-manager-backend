@@ -24,6 +24,7 @@ def create_app():
         JWT_COOKIE_CSRF_PROTECT=False,
         JWT_COOKIE_SECURE=True,
         JWT_COOKIE_SAMESITE='None',
+        # JWT_SESSION_COOKIE=False,
     )
 
     mongoengine.connect('project1', host=os.environ.get('MONGO_URI'))

@@ -14,7 +14,6 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 
-
 import flask_app.db as db
 import flask_app.emails as emails
 
@@ -72,6 +71,7 @@ class UserLogin(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('username', help='This field cannot be blank', required=True)
         parser.add_argument('password', help='This field cannot be blank', required=True)
+        parser.add_argument('remember', type=bool)
         data = parser.parse_args()
         # Check if username exist
         try:
@@ -99,7 +99,12 @@ class UserLogin(Resource):
             }, 200
         )
 
-        set_refresh_cookies(resp, refresh_token)
+        if data['remember']:
+            max_age = 31536000
+        else:
+            max_age = None
+
+        set_refresh_cookies(resp, refresh_token, max_age=max_age)
 
         return resp
 
