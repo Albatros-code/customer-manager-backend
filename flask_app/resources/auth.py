@@ -204,6 +204,7 @@ class PasswordResetPasswordChange(Resource):
         parser.add_argument('password')
         data = parser.parse_args()
 
+        reset_password = None
         try:
             yesterday = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).isoformat()
             reset_passwords = db.ResetPassword.objects(date__gt=yesterday)
@@ -211,7 +212,8 @@ class PasswordResetPasswordChange(Resource):
             for doc in reset_passwords:
                 if db.ResetPassword.verify_hash(data.token, doc.token):
                     current_user = db.User.objects(username=doc.username).get()
-                    doc.delete()
+                    reset_password = doc
+                    # doc.delete()
                     break
             if not current_user:
                 raise
@@ -219,9 +221,12 @@ class PasswordResetPasswordChange(Resource):
             return {'message': 'token not found'}, 400
 
         try:
-            current_user.password = db.User.generate_hash(data.password)
-            current_user.save()
+            # current_user.password = db.User.generate_hash(data.password)
+            current_user.password = data.password
+            current_user.save(new_password_check=True)
+        except ValueError as err:
+            return {'errors': err.args[0]}, 400
         except:
-            return {'message': 'password change failed'}, 400
-
+            return {'error': 'Something went wrong'}, 400
+        reset_password.delete()
         return {'message': 'password changed'}, 200
