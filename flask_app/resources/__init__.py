@@ -38,7 +38,8 @@ from .settings import (
 )
 
 from .util import (
-    CurrentDate
+    CurrentDate,
+    DatabaseReset
 )
 
 resources = [
@@ -67,6 +68,7 @@ resources = [
     (Settings, '/settings'),
     (SettingsDefault, '/settings/default'),
 
-    (CurrentDate, '/util/current-date')
+    (CurrentDate, '/util/current-date'),
+    (DatabaseReset, '/util/database-reset'),
 ]
 

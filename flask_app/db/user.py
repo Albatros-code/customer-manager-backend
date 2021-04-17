@@ -1,6 +1,9 @@
 import re
 import secrets
 import mongoengine
+import requests
+import json
+import random
 
 from passlib.hash import pbkdf2_sha256 as sha256
 
@@ -87,6 +90,35 @@ class User(BaseDocument):
 
     # def validate_new_password(self):
     #     validate_new_password(self.password)
+    @classmethod
+    def generate_random_user(cls):
+        random_name = requests.get("https://randomuser.me/api/?nat=gb&inc=name")
+        login = f'user{random.randint(100000, 999999)}'
+
+        user_data = UserData(
+            phone=f'{random.randint(100000000, 999999999)}',
+            fname=json.loads(random_name.text)['results'][0]['name']['first'],
+            lname=json.loads(random_name.text)['results'][0]['name']['last'],
+            email=f'{login}@email.com',
+            age=f'{random.randint(20, 70)}',
+        )
+        user_settings = UserSettings(
+            newsletter=False
+        )
+        user_parameters = UserParameters(
+            email_verified=True,
+            email_verification_string='emailverificationstring',
+        )
+        user = cls(
+            role='user',
+            username=login,
+            password='password',
+            data=user_data,
+            settings=user_settings,
+            parameters=user_parameters,
+        )
+
+        return user
 
 
 def validate_new_password(doc: User, validate: bool = False):

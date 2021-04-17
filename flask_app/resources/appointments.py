@@ -11,7 +11,9 @@ from flask_jwt_extended import (
 import flask_app.db as db
 import flask_app.util as util
 
-from flask_app.util import from_ISO_string
+from .utils.appointments import (
+    validate_new_appointment
+)
 
 
 class Appointments(Resource):
@@ -54,8 +56,6 @@ class Appointments(Resource):
 
         return {'appointments': response_data, 'date_range': date_range}, 200
 
-        # return response_data, 200
-
     @jwt_required()
     def post(self):
         parser = reqparse.RequestParser()
@@ -71,6 +71,10 @@ class Appointments(Resource):
             duration=data['duration'],
             date=data['date'],
         )
+
+        if not validate_new_appointment(new_appointment):
+            return {'error': 'Something went wrong'}, 400
+
         try:
             new_appointment.save()
             return {'message': 'Service: "{}" was scheduled for {}.'.format(data['service'], data['date'])}
@@ -142,3 +146,6 @@ def appointments_check_args(args):
             checked_arguments[item] = action(val)
 
     return checked_arguments
+
+
+
