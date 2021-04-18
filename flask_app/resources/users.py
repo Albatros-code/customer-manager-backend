@@ -1,4 +1,5 @@
-from flask_restful import Resource
+import json
+from flask_restful import Resource, reqparse
 from flask import Response, request
 
 from flask_jwt_extended import (
@@ -15,10 +16,51 @@ class Users(Resource):
         if not get_jwt_identity()['role'] == 'admin':
             return {'message': 'Forbidden'}, 403
 
-        # current_user = db.User.objects(username=identity['username']).get()
+        parser = reqparse.RequestParser()
+        parser.add_argument('pagination')
+        parser.add_argument('page')
+        parser.add_argument('order')
+        parser.add_argument('filter')
+        data = parser.parse_args()
 
-        data_json = db.User.objects.to_json()
-        return Response(data_json, mimetype="application/json", status=200)
+        if data['filter']:
+            query_params = json.loads(data['filter'])
+        else:
+            query_params = {
+                # "date__gt": data['start_date'].isoformat(),
+                # "date__lt": data['end_date'].isoformat()
+            }
+
+        if not data['order']:
+            data['order'] = ''
+
+        order_by = data['order'].replace("ascend_", "-").replace("descend_", "+")
+
+        if data['page'] and data['pagination']:
+            skip = (int(data['page']) - 1) * int(data['pagination'])
+        else:
+            skip = None
+
+        if data['pagination']:
+            limit = int(data['pagination'])
+        else:
+            limit = None
+
+        # data_json = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit).to_json()
+        users_data = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
+        users_list = []
+        for user in users_data:
+            user_dict = user.to_mongo().to_dict()
+            user_dict['id'] = str(user.id)
+            del user_dict['_id']
+            del user_dict['password']
+            del user_dict['role']
+            users_list.append(user_dict)
+        # print("----")
+        # print(users_list)
+
+        # return Response(data_json, mimetype="application/json", status=200)
+        return {'total': users_data.count(with_limit_and_skip=False), 'data': users_list}
 
 
 class User(Resource):
@@ -94,4 +136,3 @@ class UserAppointments(Resource):
             data.append(appointment)
 
         return data, 200
-
