@@ -26,10 +26,7 @@ class Users(Resource):
         if data['filter']:
             query_params = json.loads(data['filter'])
         else:
-            query_params = {
-                # "date__gt": data['start_date'].isoformat(),
-                # "date__lt": data['end_date'].isoformat()
-            }
+            query_params = {}
 
         if not data['order']:
             data['order'] = ''
@@ -46,7 +43,6 @@ class Users(Resource):
         else:
             limit = None
 
-        # data_json = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit).to_json()
         users_data = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
         users_list = []
         for user in users_data:
@@ -56,10 +52,7 @@ class Users(Resource):
             del user_dict['password']
             del user_dict['role']
             users_list.append(user_dict)
-        # print("----")
-        # print(users_list)
 
-        # return Response(data_json, mimetype="application/json", status=200)
         return {'total': users_data.count(with_limit_and_skip=False), 'data': users_list}
 
 
