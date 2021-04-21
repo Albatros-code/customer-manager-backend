@@ -14,6 +14,9 @@ import flask_app.util as util
 from .utils.appointments import (
     validate_new_appointment
 )
+from .utils.common import (
+    db_interface_table_params
+)
 
 
 class Appointments(Resource):
@@ -22,39 +25,17 @@ class Appointments(Resource):
         if not get_jwt_identity()['role'] == 'admin':
             return {'message': 'Forbidden'}, 403
 
-        data = appointments_check_args(request.args)
+        (query_params, order_by, skip, limit) = db_interface_table_params(request.args)
 
-        query_params = {
-            "date__gt": data['start_date'].isoformat(),
-            "date__lt": data['end_date'].isoformat()
-        }
+        db_data = db.Appointment.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
+        db_list = []
+        for item in db_data:
+            item_dict = item.to_mongo().to_dict()
+            item_dict['id'] = str(item.id)
+            del item_dict['_id']
+            db_list.append(item_dict)
 
-        appointments = db.Appointment.objects(**query_params).order_by('date')
-        settings = db.Settings.objects().first()
-
-        users_data = {str(x.id): x.user for x in appointments}
-        users = db.User.objects(id__in=users_data.values())
-        users = {str(x.id): {'name': f'{x.data.fname} {x.data.lname}', 'phone': x.data.phone} for x in users}
-
-        response_data = []
-        for appointment in appointments:
-            current_date = util.from_ISO_string(appointment.date)
-            if int(current_date.strftime('%H')) >= settings.start_hour and int(
-                    current_date.strftime('%H')) < settings.end_hour:
-                appointment_data = {
-                    'id': str(appointment.id),
-                    'service': appointment.service,
-                    'date': appointment.date,
-                    'duration': appointment.duration,
-                    'user_id': appointment.user,
-                    'user': users[appointment.user]['name'],
-                    'phone': users[appointment.user]['phone'],
-                }
-                response_data.append(appointment_data)
-
-        date_range = '{}:{}'.format(data['start_date'].strftime('%Y-%m-%d'), (data['end_date']).strftime('%Y-%m-%d'))
-
-        return {'appointments': response_data, 'date_range': date_range}, 200
+        return {'total': db_data.count(with_limit_and_skip=False), 'data': db_list}
 
     @jwt_required()
     def post(self):
@@ -102,6 +83,47 @@ class Appointment(Resource):
         appointment.delete()
 
         return {'message': 'Appointment deleted successfully.'}
+
+
+class AppointmentsSchedule(Resource):
+    @jwt_required()
+    def get(self):
+        if not get_jwt_identity()['role'] == 'admin':
+            return {'message': 'Forbidden'}, 403
+
+        data = appointments_check_args(request.args)
+
+        query_params = {
+            "date__gt": data['start_date'].isoformat(),
+            "date__lt": data['end_date'].isoformat()
+        }
+
+        appointments = db.Appointment.objects(**query_params).order_by('date')
+        settings = db.Settings.objects().first()
+
+        users_data = {str(x.id): x.user for x in appointments}
+        users = db.User.objects(id__in=users_data.values())
+        users = {str(x.id): {'name': f'{x.data.fname} {x.data.lname}', 'phone': x.data.phone} for x in users}
+
+        response_data = []
+        for appointment in appointments:
+            current_date = util.from_ISO_string(appointment.date)
+            if int(current_date.strftime('%H')) >= settings.start_hour and int(
+                    current_date.strftime('%H')) < settings.end_hour:
+                appointment_data = {
+                    'id': str(appointment.id),
+                    'service': appointment.service,
+                    'date': appointment.date,
+                    'duration': appointment.duration,
+                    'user_id': appointment.user,
+                    'user': users[appointment.user]['name'],
+                    'phone': users[appointment.user]['phone'],
+                }
+                response_data.append(appointment_data)
+
+        date_range = '{}:{}'.format(data['start_date'].strftime('%Y-%m-%d'), (data['end_date']).strftime('%Y-%m-%d'))
+
+        return {'appointments': response_data, 'date_range': date_range}, 200
 
 
 def appointments_check_args(args):

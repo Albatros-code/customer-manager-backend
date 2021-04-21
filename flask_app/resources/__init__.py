@@ -18,6 +18,7 @@ from .users import (
 from .appointments import (
     Appointments,
     Appointment,
+    AppointmentsSchedule,
 )
 
 from .services import (
@@ -58,7 +59,8 @@ resources = [
     (UserAppointments, '/users/<string:id>/appointments'),
 
     (Appointments, '/appointments'),
-    (Appointment, '/appointment/<string:id>'),
+    (Appointment, '/appointments/<string:id>'),
+    (AppointmentsSchedule, '/appointments-schedule'),
 
     (Services, '/services'),
     (AdminServices, '/services-admin'),

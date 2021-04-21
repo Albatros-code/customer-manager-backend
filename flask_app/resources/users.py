@@ -9,6 +9,10 @@ from flask_jwt_extended import (
 
 import flask_app.db as db
 
+from .utils.common import (
+    db_interface_table_params
+)
+
 
 class Users(Resource):
     @jwt_required()
@@ -109,7 +113,7 @@ class User(Resource):
         return {'message': f'User {id} updated.'}
 
 
-class UserAppointments(Resource):
+class UserAppointments2(Resource):
     @jwt_required()
     def get(self, id):
         if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == id:
@@ -129,3 +133,22 @@ class UserAppointments(Resource):
             data.append(appointment)
 
         return data, 200
+
+
+class UserAppointments(Resource):
+    @jwt_required()
+    def get(self, id):
+        if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == id:
+            return {'message': 'Forbidden'}, 403
+
+        (query_params, order_by, skip, limit) = db_interface_table_params(request.args)
+
+        db_data = db.Appointment.objects(user=id, **query_params).order_by(order_by).skip(skip).limit(limit)
+        db_list = []
+        for item in db_data:
+            item_dict = item.to_mongo().to_dict()
+            item_dict['id'] = str(item.id)
+            del item_dict['_id']
+            db_list.append(item_dict)
+
+        return {'total': db_data.count(with_limit_and_skip=False), 'data': db_list}
