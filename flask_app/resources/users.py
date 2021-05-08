@@ -1,4 +1,5 @@
 import json
+
 from flask_restful import Resource, reqparse
 from flask import Response, request
 
@@ -47,7 +48,12 @@ class Users(Resource):
         else:
             limit = None
 
-        users_data = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
+        try:
+            users_data = db.User.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
+            users_data.count(with_limit_and_skip=False)
+        except:
+            return {'total': 0, 'data': []}
+
         users_list = []
         for user in users_data:
             user_dict = user.to_mongo().to_dict()
@@ -58,6 +64,7 @@ class Users(Resource):
             users_list.append(user_dict)
 
         return {'total': users_data.count(with_limit_and_skip=False), 'data': users_list}
+        # return {'total': 0, 'data': []}
 
 
 class User(Resource):
