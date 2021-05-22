@@ -23,6 +23,7 @@ from .appointments import (
 
 from .services import (
     Services,
+    Service,
     AdminServices,
 )
 
@@ -63,6 +64,7 @@ resources = [
     (AppointmentsSchedule, '/appointments-schedule'),
 
     (Services, '/services'),
+    (Service, '/services-admin/<string:id>'),
     (AdminServices, '/services-admin'),
 
     (AvailableDates, '/available-dates'),

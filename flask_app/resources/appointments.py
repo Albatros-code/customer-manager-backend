@@ -27,6 +27,12 @@ class Appointments(Resource):
 
         (query_params, order_by, skip, limit) = db_interface_table_params(request.args)
 
+        try:
+            data = db.Appointment.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
+            data.count(with_limit_and_skip=False)
+        except:
+            return {'total': 0, 'data': []}
+
         db_data = db.Appointment.objects(**query_params).order_by(order_by).skip(skip).limit(limit)
         db_list = []
         for item in db_data:
@@ -83,6 +89,29 @@ class Appointment(Resource):
         appointment.delete()
 
         return {'message': 'Appointment deleted successfully.'}
+
+    @jwt_required()
+    def put(self, id):
+        if not get_jwt_identity()['role'] == 'admin':
+            return {'message': 'Forbidden'}, 403
+
+        data = request.get_json()
+        new_values = data['appointment']
+
+        appointment = db.Appointment.objects(id=id).first()
+
+        for key in new_values:
+            print(key + ' ' + str(new_values[key]))
+            setattr(appointment, key, new_values[key])
+
+        # appointment.save(clean=True)
+
+        try:
+            appointment.save(clean=True)
+        except Exception as err:
+            return {'errors': err.args[0]}, 400
+
+        return {'message': 'Appointment updated.'}
 
 
 class AppointmentsSchedule(Resource):
@@ -168,6 +197,3 @@ def appointments_check_args(args):
             checked_arguments[item] = action(val)
 
     return checked_arguments
-
-
-

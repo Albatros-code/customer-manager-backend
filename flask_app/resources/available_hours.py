@@ -97,7 +97,7 @@ def available_hours_check_args(args):
 
     def check_service(val):
         try:
-            service = db.Service.objects(name=val).get()
+            service = db.Service.objects(id=val).get()
         except:
             return defaults['service']
 

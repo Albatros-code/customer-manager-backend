@@ -72,7 +72,7 @@ class DatabaseReset(Resource):
 
             new_appointment = db.Appointment(
                 user=str(user.id),
-                service=service.name,
+                service=str(service.id),
                 date=util.to_ISO_string(current_date),
                 duration=service.time
             )

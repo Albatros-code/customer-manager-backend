@@ -11,8 +11,33 @@ import flask_app.db as db
 
 class Services(Resource):
     def get(self):
-        data_json = db.Service.objects.to_json()
-        return Response(data_json, mimetype="application/json", status=200)
+        db_data = db.Service.objects()
+        db_list = []
+        for item in db_data:
+            item_dict = item.to_mongo().to_dict()
+            item_dict['id'] = str(item.id)
+            del item_dict['_id']
+            db_list.append(item_dict)
+
+        # data_json = db.Service.objects.to_json()
+        return {'total': db_data.count(with_limit_and_skip=False), 'data': db_list}
+
+
+class Service(Resource):
+    @jwt_required()
+    def get(self, id):
+        if not get_jwt_identity()['role'] == 'admin':
+            return {'message': 'Forbidden'}, 403
+        try:
+            db_doc = db.Service.objects(id=id).get()
+        except:
+            return {'err': 'no user found'}, 404
+
+        doc_dict = db_doc.to_mongo().to_dict()
+        doc_dict['id'] = str(db_doc.id)
+        del doc_dict['_id']
+
+        return {'doc': doc_dict}, 200
 
 
 class AdminServices(Resource):

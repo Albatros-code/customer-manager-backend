@@ -83,7 +83,7 @@ class User(Resource):
             'settings': user_dict.get('settings', {}),
         }
 
-        return {'user': user}, 200
+        return {'doc': user}, 200
 
     @jwt_required()
     def put(self, id):
