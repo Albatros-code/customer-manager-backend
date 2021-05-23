@@ -144,8 +144,8 @@ class AppointmentsSchedule(Resource):
                     'service': appointment.service,
                     'date': appointment.date,
                     'duration': appointment.duration,
-                    'user_id': appointment.user,
-                    'user': users[appointment.user]['name'],
+                    'user': appointment.user,
+                    'user_name': users[appointment.user]['name'],
                     'phone': users[appointment.user]['phone'],
                 }
                 response_data.append(appointment_data)
