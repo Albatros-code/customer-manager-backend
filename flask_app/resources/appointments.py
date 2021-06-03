@@ -14,10 +14,12 @@ import flask_app.util as util
 from .utils.appointments import (
     validate_new_appointment
 )
+
 from .utils.common import (
     db_interface_table_params
 )
 
+from flask_app.util import merge_dicts
 
 class Appointments(Resource):
     @jwt_required()
@@ -73,6 +75,22 @@ class Appointments(Resource):
 class Appointment(Resource):
 
     @jwt_required()
+    def get(self, id):
+        try:
+            appointment = db.Appointment.objects(id=id).get()
+        except:
+            return {'error': 'Appointment does not exist.'}, 404
+
+        if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == str(appointment['user']):
+            return {'message': 'Forbidden'}, 403
+
+        item_dict = appointment.to_mongo().to_dict()
+        item_dict['id'] = str(appointment.id)
+        del item_dict['_id']
+
+        return {'doc': item_dict}, 200
+
+    @jwt_required()
     def delete(self, id):
 
         try:
@@ -101,10 +119,8 @@ class Appointment(Resource):
         appointment = db.Appointment.objects(id=id).first()
 
         for key in new_values:
-            print(key + ' ' + str(new_values[key]))
+            # print(key + ' ' + str(new_values[key]))
             setattr(appointment, key, new_values[key])
-
-        # appointment.save(clean=True)
 
         try:
             appointment.save(clean=True)

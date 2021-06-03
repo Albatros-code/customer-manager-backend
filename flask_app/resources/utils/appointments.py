@@ -209,8 +209,13 @@ def validate_new_appointment(new_appointment, appointments=None, settings=None, 
     if not appointments:
         query_params = {
             "date__gt": start_date.isoformat(),
-            "date__lt": end_date.isoformat()
+            "date__lt": end_date.isoformat(),
+            # "id__ne": new_appointment.id
         }
+
+        if new_appointment.id:
+            query_params["id__ne"] = new_appointment.id
+
         appointments = db.Appointment.objects(**query_params).order_by('date')
 
     # generate available slots for a day of interesting appointment
@@ -226,6 +231,7 @@ def validate_new_appointment(new_appointment, appointments=None, settings=None, 
     )
 
     slots = get_slots_for_appointment(new_appointment, available_slots, settings)
+
     appointment_validation_result = check_slots_availability(slots, available_slots)
 
     return appointment_validation_result
