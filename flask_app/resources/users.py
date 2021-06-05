@@ -119,6 +119,24 @@ class User(Resource):
 
         return {'message': f'User {id} updated.'}
 
+    @jwt_required()
+    def delete(self, id):
+
+        try:
+            doc = db.User.objects(id=id).get()
+        except:
+            return {'error': 'User does not exist.'}, 404
+
+        if not get_jwt_identity()['role'] == 'admin' and not get_jwt_identity()['id'] == str(doc['id']):
+            return {'message': 'Forbidden'}, 403
+
+        # if doc.date <= util.to_ISO_string(util.datetime_now_local()) and get_jwt_identity()['role'] != 'admin':
+        #     return {'error': 'Appointment cannot be deleted.'}, 400
+
+        doc.delete()
+
+        return {'message': 'User deleted successfully.'}
+
 
 class UserAppointments2(Resource):
     @jwt_required()
