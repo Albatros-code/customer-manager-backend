@@ -76,6 +76,7 @@ class User(Resource):
             user_doc = db.User.objects(id=id).get()
         except:
             return {'err': 'no user found'}, 404
+
         user_dict = user_doc.to_mongo().to_dict()
         user = {
             'id': str(user_doc.id),

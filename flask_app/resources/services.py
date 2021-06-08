@@ -1,5 +1,6 @@
 import json
 from flask_restful import Resource, reqparse
+from flask import request
 from flask import Response
 from flask_jwt_extended import (
     jwt_required,
@@ -31,13 +32,49 @@ class Service(Resource):
         try:
             db_doc = db.Service.objects(id=id).get()
         except:
-            return {'err': 'no user found'}, 404
+            return {'err': 'no service found'}, 404
 
         doc_dict = db_doc.to_mongo().to_dict()
         doc_dict['id'] = str(db_doc.id)
         del doc_dict['_id']
 
         return {'doc': doc_dict}, 200
+
+    @jwt_required()
+    def put(self, id):
+        if not get_jwt_identity()['role'] == 'admin':
+            return {'message': 'Forbidden'}, 403
+
+        data = request.get_json()
+        new_values = data['service']
+
+        doc = db.Service.objects(id=id).first()
+
+        for key in new_values:
+            # print(key + ' ' + str(new_values[key]))
+            setattr(doc, key, new_values[key])
+
+        try:
+            doc.save(clean=True)
+        except Exception as err:
+            return {'errors': err.args[0]}, 400
+
+        return {'message': 'Service updated.'}
+
+    @jwt_required()
+    def delete(self, id):
+
+        try:
+            doc = db.Service.objects(id=id).get()
+        except:
+            return {'error': 'Appointment does not exist.'}, 404
+
+        if not get_jwt_identity()['role'] == 'admin':
+            return {'message': 'Forbidden'}, 403
+
+        doc.delete()
+
+        return {'message': 'Service deleted successfully.'}
 
 
 class AdminServices(Resource):
@@ -82,3 +119,41 @@ class AdminServices(Resource):
             services_list.append(service_dict)
 
         return {'total': services_data.count(with_limit_and_skip=False), 'data': services_list}
+
+    @jwt_required()
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('name')
+        parser.add_argument('duration')
+        parser.add_argument('price')
+        data = parser.parse_args()
+
+        if data['name']:
+            name = data['name']
+        else:
+            name = ''
+
+        if data['duration']:
+            duration = data['duration']
+        else:
+            duration = ''
+
+        if data['price']:
+            price = data['price']
+        else:
+            price = ''
+
+        new_doc = db.Service(
+            name=name,
+            duration=duration,
+            price=price,
+        )
+
+        try:
+            # new_doc.save(clean=True)
+            new_doc.save()
+            return {'message': 'Service: "{}" was created.'.format(data['name'])}
+        except Exception as err:
+            return {'errors': err.args[0]}, 400
+
+        return {'error': 'Something went wrong'}, 400

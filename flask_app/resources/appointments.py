@@ -21,6 +21,7 @@ from .utils.common import (
 
 from flask_app.util import merge_dicts
 
+
 class Appointments(Resource):
     @jwt_required()
     def get(self):
@@ -49,14 +50,21 @@ class Appointments(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('service', help='This field cannot be blank', required=True)
+        # parser.add_argument('service_name')
         parser.add_argument('duration', help='This field cannot be blank', required=True)
         parser.add_argument('date', help='This field cannot be blank', required=True)
         data = parser.parse_args()
         current_user = get_jwt_identity()['id']
 
+        if 'service_name' in data:
+            service_name = data['service_name']
+        else:
+            service_name = db.Service.objects(id=data['service']).get()['name']
+
         new_appointment = db.Appointment(
             user=current_user,
             service=data['service'],
+            service_name=service_name,
             duration=data['duration'],
             date=data['date'],
         )
@@ -67,7 +75,6 @@ class Appointments(Resource):
         try:
             new_appointment.save()
             return {'message': 'Service: "{}" was scheduled for {}.'.format(data['service'], data['date'])}
-
         except:
             return {'error': 'Something went wrong'}, 400
 
@@ -161,8 +168,8 @@ class AppointmentsSchedule(Resource):
                     'date': appointment.date,
                     'duration': appointment.duration,
                     'user': appointment.user,
-                    'user_name': users[appointment.user]['name'],
-                    'phone': users[appointment.user]['phone'],
+                    'user_name': users.get(appointment.user, {'name': appointment.user})['name'],
+                    'phone': users.get(appointment.user, {'phone': '-'})['phone'],
                 }
                 response_data.append(appointment_data)
 

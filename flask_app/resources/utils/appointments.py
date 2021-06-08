@@ -140,7 +140,7 @@ def get_first_prev_slot(available_hours_obj, date_obj):
 
 def add_service_duration_restrictions(available_hours_obj_inp, interval, end_hour, service):
     available_hours_obj = json.loads(json.dumps(available_hours_obj_inp))
-    slots_count = math.ceil(int(service.time) / interval) - 1
+    slots_count = math.ceil(int(service.duration) / interval) - 1
 
     # add end hours to collections
     for key in available_hours_obj:

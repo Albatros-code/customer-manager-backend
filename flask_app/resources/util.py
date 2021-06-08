@@ -73,8 +73,9 @@ class DatabaseReset(Resource):
             new_appointment = db.Appointment(
                 user=str(user.id),
                 service=str(service.id),
+                service_name=str(service.name),
                 date=util.to_ISO_string(current_date),
-                duration=service.time
+                duration=service.duration
             )
 
             # validate if new appointments fits in to available slots

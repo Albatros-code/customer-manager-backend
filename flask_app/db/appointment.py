@@ -22,6 +22,7 @@ def validate_duration(val):
 class Appointment(BaseDocument):
     user = mongoengine.StringField()
     service = mongoengine.StringField()
+    service_name = mongoengine.StringField()
     date = mongoengine.StringField()
     duration = mongoengine.IntField(validation=validate_duration)
 
