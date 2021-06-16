@@ -29,9 +29,12 @@ class DatabaseReset(Resource):
         if not get_jwt_identity()['role'] == 'admin':
             return {'message': 'Forbidden'}, 403
 
-        # delete appointments of all user but not User1 and User2
-        user_ids = [str(x.id) for x in db.User.objects(username__in=['User1', 'User2'])]
-        db.Appointment.objects(user__nin=user_ids).delete()
+        # get settings data
+        settings = db.Settings.objects().first()
+
+        # delete appointments
+        db.Appointment.objects().delete()
+        db.Service.objects().delete()
 
         # delete users other than User1 and User2
         db.User.objects(username__nin=['User1', 'User2']).delete()
@@ -47,9 +50,21 @@ class DatabaseReset(Resource):
         # add new users to database
         db.User.objects.insert(users)
 
+        # create new services
+        service_no = 10
+        services = []
+        for i in range(service_no):
+            new_service = db.Service(
+                name=f"Service {i}",
+                duration=random.randint(1, 6) * settings.time_interval,
+                price=random.randint(5, 30) * 10,
+            )
+            services.append(new_service)
+
+        # add new services to database
+        db.Service.objects.insert(services)
+
         # create appointments for new users (4 weeks, starting from current, monday to sunday)
-        services = db.Service.objects()
-        settings = db.Settings.objects().first()
 
         now = util.datetime_now_local()
         start_date = (now - datetime.timedelta(days=now.weekday()))
