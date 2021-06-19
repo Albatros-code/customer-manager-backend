@@ -19,8 +19,6 @@ from .utils.common import (
     db_interface_table_params
 )
 
-from flask_app.util import merge_dicts
-
 
 class Appointments(Resource):
     @jwt_required()

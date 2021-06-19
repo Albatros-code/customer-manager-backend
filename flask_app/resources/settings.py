@@ -53,15 +53,12 @@ class Settings(Resource):
         for key in new_values:
             setattr(settings, key, new_values[key])
 
-        # settings.save(clean=True)
-
         try:
             settings.save(clean=True)
         except Exception as err:
             return {'errors': err.args[0]}, 400
 
         return {'message': 'Settings updated.'}
-
 
 
 class SettingsDefault(Resource):

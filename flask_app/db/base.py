@@ -2,7 +2,6 @@ import mongoengine
 
 
 class BaseDocument(mongoengine.Document):
-    # meta = {'allow_inheritance': True}
     meta = {'abstract': True}
 
     def save(self, clean: bool = True, errors: dict = None, *args, **kwargs):
@@ -72,7 +71,6 @@ def get_unique_errors(document, unique_fields):
 
     for field in unique_fields:
         single_error = {}
-        # check_uniqueness(field, document, unique_errors, field)
         unique = check_uniqueness(field, document, single_error, field)
         if not unique:
             unique_errors_list.append(single_error)
@@ -117,31 +115,3 @@ def merge_dicts(dicts):
         add_to_new_dict(item, new_dict)
 
     return new_dict
-
-# def merge_errors(error_lists, document):
-#     merged_errors = {}
-#
-#     def traverse_dicts(lists, current_document, field_name, merged_errors):
-#         if isinstance(current_document[field_name], mongoengine.EmbeddedDocument):
-#             new_error_lists = [x[field_name] for x in error_lists if field_name in x]
-#             if len(new_error_lists) == 0:
-#                 return
-#             merged_errors_inner = {}
-#             merged_errors[field_name] = merged_errors_inner
-#
-#             for field in current_document[field_name]:
-#                 traverse_dicts(new_error_lists, current_document[field_name], field, merged_errors_inner)
-#             return
-#
-#         merged_dicts = {}
-#         for list in lists:
-#             if field_name in list:
-#                 merged_dicts.update(list[field_name])
-#
-#         if merged_dicts != {}:
-#             merged_errors[field_name] = merged_dicts
-#
-#     for field in document:
-#         traverse_dicts(error_lists, document, field, merged_errors)
-#
-#     return merged_errors

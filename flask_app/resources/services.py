@@ -1,7 +1,6 @@
 import json
 from flask_restful import Resource, reqparse
 from flask import request
-from flask import Response
 from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity
@@ -20,7 +19,6 @@ class Services(Resource):
             del item_dict['_id']
             db_list.append(item_dict)
 
-        # data_json = db.Service.objects.to_json()
         return {'total': db_data.count(with_limit_and_skip=False), 'data': db_list}
 
 

@@ -2,6 +2,7 @@ import datetime
 import pytz
 import json
 
+
 def generateTimeSpace(day, start_hour, end_hour, interval):
 
     def minutes():
@@ -40,27 +41,12 @@ def generateTimeSpace(day, start_hour, end_hour, interval):
     for hour in current_day_dict:
         hours = current_day_dict[hour]
         for minute in hours:
-            # print(f'{hour}:{minute}')
             current_string = f'{date_string_now}T{hour}:{minute}'
             dateObj = local_timezone.localize(datetime.datetime.strptime(current_string, "%Y-%m-%dT%H:%M"))
-            # print(dateObj)
-            # print(dateObj<now_local)
             if dateObj < now_local:
                 del data[dateObj.strftime("%Y-%m-%d")][dateObj.strftime("%H")][dateObj.strftime("%M")]
 
-    # print(now_utc)
-    # print(now_utc.tzinfo)
-    # print('---')
-    # print(now_local)
-    # print(now_local.tzinfo)
-    # print('---')
-    # print(date_string_now)
-
-
     return data
-
-# def from_ISO_string(iso_string):
-    # return datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
 
 
 def from_ISO_string(iso_string):
@@ -113,56 +99,3 @@ def merge_dicts(dicts):
         add_to_new_dict(item, new_dict)
 
     return new_dict
-
-# local_timezone = pytz.timezone("Europe/Warsaw")
-# now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=123)
-# now_local = now.replace(tzinfo=pytz.utc).astimezone(local_timezone)
-# print(to_ISO_string(now_local))
-
-
-# day = datetime.datetime.now(datetime.timezone.utc)
-# start_hour = 12
-# end_hour = 20
-# interval = 15
-# generateTimeSpace(day, start_hour, end_hour, interval)
-# # print(generateTimeSpace(day, start_hour, end_hour, interval))
-#
-# iso_string = '2021-01-31T18:00:00.000Z'
-#
-# local_timezone = pytz.timezone("Europe/Warsaw")
-# utc_time = datetime.datetime.strptime(iso_string, "%Y-%m-%dT%H:%M:%S.%fZ")
-# local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(local_timezone)
-#
-# # print(local_time)
-# delta = datetime.timedelta(minutes=15)
-# print(local_time + delta)
-
-
-# print(datetime.datetime.now())
-# now = datetime.datetime.now()
-# timezone = pytz.timezone("Europe/Warsaw")
-# now_aware = timezone.localize(now)
-# print(now.isoformat())
-# print(now_aware.isoformat())
-
-# d = datetime.datetime(1990, 11, 13)
-# print(d)
-# print(d.isoformat())
-# print(d.strftime("%Y/%m/%d"))
-
-# d = pytz.utc.localize(datetime.datetime.utcnow())
-# d = datetime.datetime.now(datetime.timezone.utc)
-
-# isoString = str(d.isoformat())
-# print(isoString)
-# d = datetime.datetime.fromisoformat(isoString)
-# print(d)
-# print(d.isoformat())
-
-# d = datetime.datetime.now()
-# iso = d.isoformat()
-# print(iso)
-
-# iso = "2021-01-23T15:30:00.957Z"
-# # d = datetime.datetime.strptime(iso, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
-# print(from_ISO_string(iso))

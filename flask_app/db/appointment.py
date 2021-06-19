@@ -11,14 +11,6 @@ def validate_duration(val):
         raise mongoengine.ValidationError("Not valid number.")
 
 
-# def validate_date(val):
-#     if isinstance(val, dict):
-#         print(val)
-#         # raise mongoengine.ValidationError(val['error'])
-#         raise mongoengine.ValidationError("error msg")
-
-
-# class Appointment(mongoengine.Document):
 class Appointment(BaseDocument):
     user = mongoengine.StringField()
     service = mongoengine.StringField()

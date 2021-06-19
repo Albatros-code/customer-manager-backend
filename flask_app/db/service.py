@@ -21,5 +21,3 @@ class Service(BaseDocument):
     name = mongoengine.StringField(validation=validate_name)
     duration = mongoengine.IntField(validation=validate_duration)
     price = mongoengine.IntField(validation=validate_price)
-
-    # def objects(self, *args, **kwargs):

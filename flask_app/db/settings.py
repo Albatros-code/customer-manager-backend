@@ -1,5 +1,4 @@
 import mongoengine
-import re
 
 from flask_app.db.base import BaseDocument
 
