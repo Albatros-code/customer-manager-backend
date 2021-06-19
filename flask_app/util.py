@@ -70,12 +70,12 @@ def datetime_now_local():
     return now_local
 
 
-def datetime_new_local(day, hour, minute):
+def datetime_new_local(day, hour, minute, second='00', microseconds='000'):
     now = datetime.datetime.now(datetime.timezone.utc)
     local_timezone = pytz.timezone("Europe/Warsaw")
     date_local = now.astimezone(local_timezone)
 
-    date = date_local.strptime(f'{day}T{hour}:{minute}:00.000', "%Y-%m-%dT%H:%M:%S.%f")
+    date = date_local.strptime(f'{day}T{hour}:{minute}:{second}.{microseconds}', "%Y-%m-%dT%H:%M:%S.%f")
     return date
 
 
