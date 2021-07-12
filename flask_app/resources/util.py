@@ -56,7 +56,7 @@ class DatabaseReset(Resource):
         for i in range(service_no):
             new_service = db.Service(
                 name=f"Service {i}",
-                duration=random.randint(1, 6) * settings.time_interval,
+                duration=random.randint(3, 6) * settings.time_interval,
                 price=random.randint(5, 30) * 10,
             )
             services.append(new_service)
